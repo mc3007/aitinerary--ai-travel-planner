@@ -379,6 +379,125 @@ The build output goes to `dist/` and is ready for deployment to any static hosti
 
 ---
 
+## 🐳 Docker
+
+### Prerequisites
+
+- **Docker** 20.10+ — [Install Docker](https://docs.docker.com/get-docker/)
+- **Docker Compose** v2+ — included with Docker Desktop
+
+### Quick Start
+
+```bash
+# Build and start the container
+docker compose up --build
+
+# Or run in detached mode
+docker compose up --build -d
+```
+
+The app will be available at **`http://localhost:3000`**.
+
+### Build with Environment Variables
+
+Pass your Supabase URL as a build argument if you're using your own project:
+
+```bash
+VITE_SUPABASE_URL=https://your-project.supabase.co docker compose up --build
+```
+
+Or create a `.env` file at the project root and `docker compose` will pick it up automatically:
+
+```bash
+# .env
+VITE_SUPABASE_URL=https://your-project.supabase.co
+```
+
+```bash
+docker compose up --build
+```
+
+### Using Docker Directly (without Compose)
+
+If you prefer plain Docker commands:
+
+```bash
+# Build the image
+docker build -t aitinerary .
+
+# Build with a custom Supabase URL
+docker build --build-arg VITE_SUPABASE_URL=https://your-project.supabase.co -t aitinerary .
+
+# Run the container
+docker run -d -p 3000:80 --name aitinerary aitinerary
+
+# Stop and remove
+docker stop aitinerary && docker rm aitinerary
+```
+
+### Common Commands
+
+```bash
+# Start (build only if needed)
+docker compose up
+
+# Rebuild from scratch (no cache)
+docker compose build --no-cache
+
+# Stop and remove containers
+docker compose down
+
+# View logs
+docker compose logs -f aitinerary
+
+# Check the running container
+docker ps
+```
+
+### How It Works
+
+The project uses a **multi-stage Docker build** for a minimal production image (~25 MB):
+
+```
+┌─────────────────────────────────────────┐
+│  Stage 1: node:20-alpine (builder)      │
+│  ─ npm install                          │
+│  ─ npm run build → dist/                │
+├─────────────────────────────────────────┤
+│  Stage 2: nginx:alpine (production)     │
+│  ─ Copies dist/ from builder            │
+│  ─ Custom nginx.conf for SPA routing    │
+│  ─ gzip, caching, try_files fallback    │
+└─────────────────────────────────────────┘
+```
+
+- **SPA routing** — nginx is configured with `try_files $uri $uri/ /index.html` so React Router works on all routes (direct URL access, page refresh)
+- **Static asset caching** — JS, CSS, images, and fonts are cached for 1 year with `immutable`
+- **index.html is never cached** — ensures updates deploy immediately
+
+### Docker Compose Configuration
+
+```yaml
+services:
+  aitinerary:
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
+    container_name: aitinerary
+    ports:
+      - "3000:80"    # Host:Container
+    restart: unless-stopped
+```
+
+| Setting | Description |
+|---|---|
+| `ports: "3000:80"` | Maps host port 3000 to nginx's port 80 inside the container |
+| `restart: unless-stopped` | Auto-restarts on crash, but not after a manual `docker compose stop` |
+| `args: VITE_SUPABASE_URL` | Passes the env var into the Docker build for Vite |
+
+---
+
 ## 🌐 Deployment
 
 ### Vercel (recommended)

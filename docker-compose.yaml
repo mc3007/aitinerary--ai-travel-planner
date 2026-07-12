@@ -4,7 +4,10 @@ services:
 
   aitinerary:
 
-    build: .
+    build:
+      context: .
+      args:
+        VITE_SUPABASE_URL: ${VITE_SUPABASE_URL:-}
 
     container_name: aitinerary
 
@@ -12,6 +15,3 @@ services:
       - "3000:80"
 
     restart: unless-stopped
-
-    env_file:
-      - .env
