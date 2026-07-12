@@ -63,8 +63,7 @@ Built as a hackathon project to showcase how conversational AI can power the nex
 
 ### Landing Page
 
-![Landing](<img width="2660" height="6112" alt="landing page" src="https://github.com/user-attachments/assets/92b6c208-d20b-4b17-94d3-e267171b6687" />
-)
+![Landing](<img width="1343" height="884" alt="Screenshot 2026-07-13 at 2 59 26 AM" src="https://github.com/user-attachments/assets/07095234-d707-4ed9-a61b-661590737bc3" />)
 
 ### Dashboard
 
