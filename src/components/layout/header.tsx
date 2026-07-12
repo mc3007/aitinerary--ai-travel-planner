@@ -127,7 +127,7 @@ export function Header() {
           aria-label="Home"
         >
           <img
-            src="/logo-full.png"
+            src="/logo-full.svg"
             alt="AITinerary"
             className={`w-auto transition-all duration-300 ${
               scrolled ? 'h-6' : 'h-7'
