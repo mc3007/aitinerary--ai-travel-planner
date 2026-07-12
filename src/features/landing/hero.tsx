@@ -87,16 +87,12 @@ export function Hero() {
                 Watch how AITinerary plans your perfect trip in seconds.
               </DialogDescription>
               <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-background">
-                  <div className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-                      <Play className="h-6 w-6 text-primary" />
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      Demo video placeholder — replace with your actual video
-                    </p>
-                  </div>
-                </div>
+                <video
+                  src="/Demo%20video.mp4"
+                  controls
+                  autoPlay
+                  className="h-full w-full object-contain"
+                />
               </div>
               <button
                 onClick={() => setDemoOpen(false)}
@@ -114,13 +110,22 @@ export function Hero() {
           transition={{ duration: 0.7, delay: 0.4 }}
           className="mt-16"
         >
-          <div className="relative mx-auto max-w-4xl rounded-2xl border border-border/50 bg-card/50 p-2 shadow-2xl backdrop-blur-sm">
-            <div className="aspect-video rounded-xl bg-gradient-to-br from-primary/5 via-secondary/5 to-background flex items-center justify-center">
-              <div className="text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Play className="h-6 w-6 text-primary" />
+          <div
+            className="relative mx-auto max-w-4xl cursor-pointer rounded-2xl border border-border/50 bg-card/50 p-2 shadow-2xl backdrop-blur-sm transition-shadow hover:shadow-primary/10"
+            onClick={() => setDemoOpen(true)}
+          >
+            <div className="relative aspect-video overflow-hidden rounded-xl bg-black">
+              <video
+                src="/Demo%20video.mp4"
+                className="h-full w-full object-contain pointer-events-none"
+                preload="metadata"
+                muted
+                playsInline
+              />
+              <div className="absolute inset-0 flex items-center justify-center bg-black/20 transition-colors hover:bg-black/10">
+                <div className="flex h-16 w-16 items-center justify-center rounded-full bg-primary/90 text-primary-foreground shadow-lg">
+                  <Play className="h-6 w-6 ml-0.5" />
                 </div>
-                <p className="mt-3 text-sm text-muted-foreground">See AITinerary in action</p>
               </div>
             </div>
           </div>
