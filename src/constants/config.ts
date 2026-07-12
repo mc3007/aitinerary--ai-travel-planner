@@ -1,18 +1,18 @@
 import { Database } from '../types/database';
 
 // Edge Function URL for AI itinerary generation
-// Calls Fireworks AI (AMD GPU) with Natively AI fallback
+// Calls Google Gemini (primary) with Natively AI fallback
 export const AI_CONFIG = {
   edgeFunctionUrl: `${import.meta.env.VITE_SUPABASE_URL || 'https://ydrinzubpvfpgelwvrkd.supabase.co'}/functions/v1/generate-itinerary`,
   providers: {
-    fireworks: {
-      id: 'fireworks' as const,
-      name: 'Fireworks AI',
-      description: 'Llama 70B on AMD GPUs (fast & cost-effective)',
-      badge: 'Powered by Fireworks 🚀',
-      badgeColor: 'bg-gradient-to-r from-amber-500 to-orange-500',
-      color: '#f59e0b',
-      icon: '🚀',
+    gemini: {
+      id: 'gemini' as const,
+      name: 'Google Gemini',
+      description: 'Gemini 2.0 Flash (fast & free tier available)',
+      badge: 'Powered by Gemini 🌟',
+      badgeColor: 'bg-gradient-to-r from-blue-500 to-cyan-500',
+      color: '#3b82f6',
+      icon: '🌟',
     },
     natively: {
       id: 'natively' as const,

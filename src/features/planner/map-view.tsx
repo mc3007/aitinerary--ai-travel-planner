@@ -1,46 +1,13 @@
-import { useEffect, useRef } from 'react';
-import L from 'leaflet';
-import 'leaflet/dist/leaflet.css';
+import { useEffect, useRef, useState } from 'react';
+import maplibregl from 'maplibre-gl';
+import 'maplibre-gl/dist/maplibre-gl.css';
 import { motion } from 'framer-motion';
 import type { ItineraryResponse } from '../../types/itinerary';
-
-// Fix Leaflet icon issue
-import iconUrl from 'leaflet/dist/images/marker-icon.png';
-import iconRetinaUrl from 'leaflet/dist/images/marker-icon-2x.png';
-import shadowUrl from 'leaflet/dist/images/marker-shadow.png';
-
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-delete (L.Icon.Default.prototype as any)._getIconUrl;
-L.Icon.Default.mergeOptions({
-  iconUrl,
-  iconRetinaUrl,
-  shadowUrl,
-});
 
 interface MapViewProps {
   itinerary: ItineraryResponse | null;
   destination: string;
 }
-
-const createIcon = (color: string, label?: string) => {
-  const size = label ? 24 : 12;
-  const displayLabel = label ?? '';
-  return L.divIcon({
-    className: 'custom-marker',
-    html: `<div style="
-      display: flex; align-items: center; justify-content: center;
-      gap: 4px; padding: 2px 6px;
-      background: ${color};
-      border: 2px solid white;
-      border-radius: 20px;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      font-size: 11px; font-weight: 600;
-      color: white; white-space: nowrap;
-    ">${displayLabel}</div>`,
-    iconSize: [size + displayLabel.length * 6, 28],
-    iconAnchor: [(size + displayLabel.length * 6) / 2, 14],
-  });
-};
 
 const TRANSPORT_COLORS: Record<string, string> = {
   walking: '#22c55e',
@@ -53,120 +20,266 @@ const TRANSPORT_COLORS: Record<string, string> = {
   rideshare: '#f97316',
 };
 
-export function MapView({ itinerary, destination }: MapViewProps) {
-  const mapRef = useRef<L.Map | null>(null);
-  const mapContainerRef = useRef<HTMLDivElement>(null);
+const TRANSPORT_DASH: Record<string, number[]> = {
+  flight: [8, 8],
+  ferry: [4, 4],
+};
 
+/**
+ * Create a DOM-based HTML marker for MapLibre.
+ * Returns a maplibregl.Marker with a styled pill label.
+ */
+function createPillMarker(lat: number, lng: number, label: string, color: string, dayInfo?: string) {
+  const el = document.createElement('div');
+
+  const emojiMap: Record<string, string> = {
+    morning: '🌅', afternoon: '☀️', evening: '🌙',
+  };
+  const dayEmoji = dayInfo ? emojiMap[dayInfo as keyof typeof emojiMap] || '📌' : '📌';
+
+  el.innerHTML = `
+    <div style="
+      display: flex; align-items: center; gap: 6px;
+      padding: 6px 10px;
+      background: ${color};
+      border: 2px solid white;
+      border-radius: 20px;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.25);
+      font-size: 12px; font-weight: 600;
+      color: white; white-space: nowrap;
+      cursor: pointer;
+      transition: transform 0.15s ease;
+      transform: scale(1);
+    ">
+      <span>${dayEmoji}</span>
+      <span>${label || '📍'}</span>
+    </div>
+  `;
+
+  el.addEventListener('mouseenter', () => {
+    const inner = el.firstElementChild as HTMLElement;
+    if (inner) inner.style.transform = 'scale(1.08)';
+  });
+  el.addEventListener('mouseleave', () => {
+    const inner = el.firstElementChild as HTMLElement;
+    if (inner) inner.style.transform = 'scale(1)';
+  });
+
+  return new maplibregl.Marker({ element: el, anchor: 'center' })
+    .setLngLat([lng, lat]);
+}
+
+export function MapView({ itinerary, destination }: MapViewProps) {
+  const mapContainerRef = useRef<HTMLDivElement>(null);
+  const mapRef = useRef<maplibregl.Map | null>(null);
+  const markersRef = useRef<maplibregl.Marker[]>([]);
+  const geoJsonSourceId = 'route-lines';
+  const [mapLoaded, setMapLoaded] = useState(false);
+
+  // Initialize map once
   useEffect(() => {
     if (!mapContainerRef.current || mapRef.current) return;
 
-    const map = L.map(mapContainerRef.current, {
-      zoomControl: false,
-      attributionControl: false,
-    }).setView([20, 0], 2);
+    const map = new maplibregl.Map({
+      container: mapContainerRef.current,
+      style: {
+        version: 8,
+        sources: {
+          'osm-tiles': {
+            type: 'raster',
+            tiles: ['https://tile.openstreetmap.org/{z}/{x}/{y}.png'],
+            tileSize: 256,
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>',
+          },
+        },
+        layers: [
+          {
+            id: 'osm-tiles-layer',
+            type: 'raster',
+            source: 'osm-tiles',
+            minzoom: 0,
+            maxzoom: 19,
+          },
+        ],
+      },
+      center: [0, 20],
+      zoom: 2,
+      attributionControl: true,
+    });
 
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-      maxZoom: 19,
-    }).addTo(map);
+    map.addControl(new maplibregl.NavigationControl({ showCompass: false }), 'bottom-right');
 
-    L.control.zoom({ position: 'bottomright' }).addTo(map);
+    map.on('load', () => {
+      map.addSource(geoJsonSourceId, {
+        type: 'geojson',
+        data: { type: 'FeatureCollection', features: [] },
+      });
+
+      map.addLayer({
+        id: 'route-lines-layer',
+        type: 'line',
+        source: geoJsonSourceId,
+        paint: {
+          'line-width': 3,
+          'line-opacity': 0.7,
+          'line-color': '#6C63FF',
+        },
+      });
+
+      map.scrollZoom.enable();
+      setMapLoaded(true);
+    });
+
     mapRef.current = map;
 
     return () => {
       map.remove();
       mapRef.current = null;
+      markersRef.current = [];
     };
   }, []);
 
+  // Update markers and routes when itinerary changes
   useEffect(() => {
     const map = mapRef.current;
     if (!map || !itinerary?.days) return;
 
-    // Clear existing markers and polylines
-    map.eachLayer((layer) => {
-      if (layer instanceof L.Marker || layer instanceof L.Polyline) {
-        map.removeLayer(layer);
+    // Clear existing markers
+    markersRef.current.forEach((m) => m.remove());
+    markersRef.current = [];
+
+    const allActivities = itinerary.days.flatMap((d) => d.activities);
+    const validLocations = allActivities.filter(
+      (a) => a.location?.lat && a.location?.lng && a.location.lat !== 0 && a.location.lng !== 0
+    );
+
+    const markers: maplibregl.Marker[] = [];
+    const bounds = new maplibregl.LngLatBounds();
+
+    // Fallback to top-level destination locations if no activity coordinates are available
+    if (validLocations.length === 0 && itinerary.locations && itinerary.locations.length > 0) {
+      itinerary.locations.forEach((loc) => {
+        if (loc.lat && loc.lng && loc.lat !== 0 && loc.lng !== 0) {
+          const marker = createPillMarker(loc.lat, loc.lng, loc.name, '#6C63FF');
+          marker.addTo(map);
+          markers.push(marker);
+          bounds.extend([loc.lng, loc.lat]);
+        }
+      });
+
+      if (markers.length > 0) {
+        markersRef.current = markers;
+        const pad = Math.max(bounds.getNorth() - bounds.getSouth(), bounds.getEast() - bounds.getWest()) * 0.15 || 0.2;
+        if (bounds.getNorth() !== bounds.getSouth() || bounds.getEast() !== bounds.getWest()) {
+          map.fitBounds(bounds, { padding: 40, maxZoom: 12 });
+        } else if (markers[0]) {
+          map.flyTo({ center: [markers[0].getLngLat().lng, markers[0].getLngLat().lat], zoom: 12 });
+        }
+        return;
+      }
+    }
+
+    if (validLocations.length === 0) {
+      return;
+    }
+
+
+    // Add activity markers
+    validLocations.forEach((act) => {
+      const marker = createPillMarker(
+        act.location.lat,
+        act.location.lng,
+        act.title.slice(0, 25),
+        act.visited ? '#10b981' : '#6C63FF',
+        act.category
+      );
+      marker.addTo(map);
+      markers.push(marker);
+      bounds.extend([act.location.lng, act.location.lat]);
+    });
+
+    // Build route GeoJSON features
+    const routeFeatures: GeoJSON.Feature[] = [];
+
+    // Day-specific routes
+    itinerary.days.forEach((day) => {
+      if (day.route) {
+        const fromAct = validLocations.find((a) => a.location.name === day.route!.from);
+        const toAct = validLocations.find((a) => a.location.name === day.route!.to);
+        if (fromAct && toAct) {
+          const color = TRANSPORT_COLORS[day.route.transportMode] ?? '#6C63FF';
+          const dash = TRANSPORT_DASH[day.route.transportMode];
+          routeFeatures.push({
+            type: 'Feature',
+            properties: {
+              color,
+              dash: dash ? dash.join(',') : undefined,
+              label: `${day.route.from} → ${day.route.to}`,
+              mode: day.route.transportMode,
+              distance: day.route.estimatedDistanceKm,
+              duration: day.route.estimatedDuration,
+            },
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [fromAct.location.lng, fromAct.location.lat],
+                [toAct.location.lng, toAct.location.lat],
+              ],
+            },
+          });
+        }
       }
     });
 
-    const allActivities = itinerary.days.flatMap((d) => d.activities);
-    const locations = allActivities
-      .filter((a) => a.location?.lat && a.location?.lng)
-      .map((a) => a.location);
-
-    if (locations.length > 0) {
-      // Add markers with activity names
-      const markers = locations.map((loc, i) => {
-        const act = allActivities[i];
-        return L.marker([loc.lat, loc.lng], {
-          icon: createIcon('#6C63FF', act?.title?.slice(0, 20)),
-        }).bindPopup(`<b>${act?.title ?? loc.name}</b><br/><small>${act?.description ?? ''}</small>`);
+    // If no specific routes, draw sequential connecting lines
+    if (routeFeatures.length === 0 && validLocations.length > 1) {
+      const coords = validLocations.map((a) => [a.location.lng, a.location.lat]);
+      routeFeatures.push({
+        type: 'Feature',
+        properties: { color: '#6C63FF', label: 'Route' },
+        geometry: { type: 'LineString', coordinates: coords },
       });
-
-      // Draw route polylines between consecutive markers
-      const latlngs = locations
-        .filter((loc) => loc.lat !== undefined && loc.lng !== undefined)
-        .map((loc) => [loc.lat, loc.lng] as [number, number]);
-
-      if (latlngs.length > 1) {
-        // Draw day-specific route legs with different colors if route info exists
-        itinerary.days.forEach((day) => {
-          if (day.route) {
-            const fromLoc = locations.find((l) => l.name === day.route!.from);
-            const toLoc = locations.find((l) => l.name === day.route!.to);
-            if (fromLoc?.lat && fromLoc?.lng && toLoc?.lat && toLoc?.lng) {
-              const routeColor = TRANSPORT_COLORS[day.route.transportMode] ?? '#6C63FF';
-              L.polyline(
-                [[fromLoc.lat, fromLoc.lng], [toLoc.lat, toLoc.lng]],
-                {
-                  color: routeColor,
-                  weight: 3,
-                  opacity: 0.7,
-                  dashArray: day.route.transportMode === 'flight' ? '10, 10' : undefined,
-                }
-              ).addTo(map).bindPopup(`
-                <b>${day.route.from} → ${day.route.to}</b><br/>
-                <small>${day.route.transportMode} • ${day.route.estimatedDistanceKm} km • ${day.route.estimatedDuration}</small>
-              `);
-            }
-          }
-        });
-
-        // If no structured routes exist, draw a simple connecting line
-        if (!itinerary.routes?.length) {
-          L.polyline(latlngs, {
-            color: '#6C63FF',
-            weight: 2,
-            opacity: 0.4,
-          }).addTo(map);
-        }
-      }
-
-      // Draw any explicit routes from itinerary
-      if (itinerary.routes?.length) {
-        itinerary.routes.forEach((route) => {
-          const fromLoc = locations.find((l) => l.name === route.from);
-          const toLoc = locations.find((l) => l.name === route.to);
-          if (fromLoc?.lat && fromLoc?.lng && toLoc?.lat && toLoc?.lng) {
-            const routeColor = TRANSPORT_COLORS[route.transportMode] ?? '#6C63FF';
-            L.polyline(
-              [[fromLoc.lat, fromLoc.lng], [toLoc.lat, toLoc.lng]],
-              {
-                color: routeColor,
-                weight: 3,
-                opacity: 0.7,
-                dashArray: route.transportMode === 'flight' ? '10, 10' : undefined,
-              }
-            ).addTo(map);
-          }
-        });
-      }
-
-      const group = L.featureGroup(markers);
-      map.addLayer(group);
-      map.fitBounds(group.getBounds().pad(0.2));
     }
-  }, [itinerary]);
+
+    // Also add explicit routes from itinerary
+    if (itinerary.routes?.length) {
+      itinerary.routes.forEach((route) => {
+        const fromAct = validLocations.find((a) => a.location.name === route.from);
+        const toAct = validLocations.find((a) => a.location.name === route.to);
+        if (fromAct && toAct) {
+          const color = TRANSPORT_COLORS[route.transportMode] ?? '#6C63FF';
+          const dash = TRANSPORT_DASH[route.transportMode];
+          routeFeatures.push({
+            type: 'Feature',
+            properties: { color, dash: dash ? dash.join(',') : undefined, label: `${route.from} → ${route.to}` },
+            geometry: {
+              type: 'LineString',
+              coordinates: [
+                [fromAct.location.lng, fromAct.location.lat],
+                [toAct.location.lng, toAct.location.lat],
+              ],
+            },
+          });
+        }
+      });
+    }
+
+    // Update route layer if source is loaded
+    if (map.getSource(geoJsonSourceId)) {
+      const source = map.getSource(geoJsonSourceId) as maplibregl.GeoJSONSource;
+      source.setData({ type: 'FeatureCollection', features: routeFeatures });
+
+      // Color individual routes - since we can't easily style per-feature in one layer,
+      // just set a single nice color
+      map.setPaintProperty('route-lines-layer', 'line-color', '#6C63FF');
+    }
+
+    markersRef.current = markers;
+    const pad = Math.max(bounds.getNorth() - bounds.getSouth(), bounds.getEast() - bounds.getWest()) * 0.15 || 0.2;
+    if (bounds.getNorth() !== bounds.getSouth() || bounds.getEast() !== bounds.getWest()) {
+      map.fitBounds(bounds, { padding: 40, maxZoom: 14 });
+    }
+  }, [itinerary, mapLoaded]);
 
   return (
     <motion.div
@@ -176,15 +289,23 @@ export function MapView({ itinerary, destination }: MapViewProps) {
     >
       <div className="flex items-center justify-between border-b border-border/50 bg-card px-4 py-2">
         <h3 className="text-sm font-semibold text-foreground">
-          {destination || 'Map'}
+          {destination || 'Interactive Map'}
         </h3>
-        <span className="text-xs text-muted-foreground">
-          OpenStreetMap
-        </span>
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 text-[10px] text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-[#10b981]" /> Visited
+            </span>
+            <span className="flex items-center gap-1">
+              <span className="inline-block h-2 w-2 rounded-full bg-[#6C63FF]" /> Planned
+            </span>
+          </div>
+          <span className="text-xs text-muted-foreground">OpenStreetMap</span>
+        </div>
       </div>
       <div
         ref={mapContainerRef}
-        className="h-[400px] w-full"
+        className="h-[450px] w-full"
       />
     </motion.div>
   );

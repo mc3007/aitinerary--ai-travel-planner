@@ -51,6 +51,7 @@ export interface BudgetBreakdown {
 }
 
 export interface Activity {
+  id?: string;
   time: string;
   title: string;
   description: string;
@@ -58,6 +59,19 @@ export interface Activity {
   estimatedCost: number;
   location: Location;
   tips?: string;
+  notes?: string;
+  visited?: boolean;
+  photos?: string[];
+  /** Hidden gem indicator — AI marks this if it's a non-touristy spot */
+  hidden_gem?: boolean;
+  /** Why the AI picked this activity, shown on hover/tap */
+  ai_reason?: string;
+  /** Time slot allocation for daily schedule */
+  time_slot?: 'early_morning' | 'mid_morning' | 'lunch' | 'early_afternoon' | 'late_afternoon' | 'dinner' | 'night';
+  /** Estimated time needed in hours */
+  duration_hours?: number;
+  /** Intensity level: 1 (relaxed) to 5 (exhausting) */
+  intensity?: number;
 }
 
 export interface DayPlan {
@@ -76,12 +90,15 @@ export interface ItineraryLocation {
 export interface ItineraryResponse {
   destinations: string[];
   locations?: ItineraryLocation[];
-  routes: RouteLeg[];
-  totalBudget?: number;
+  routes?: RouteLeg[];
+  totalBudget: number;
   budgetBreakdown?: BudgetBreakdown;
   currency: string;
+  homeCurrency?: string;
+  exchangeRate?: number;
   days: DayPlan[];
   notes?: string;
+  disclaimer?: string;
 }
 
 export interface TripFormData {

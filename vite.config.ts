@@ -17,6 +17,9 @@ const svgImportPlugin = () => ({
 
 // https://vite.dev/config/
 export default defineConfig(({ command }) => ({
+  resolve: {
+    dedupe: ['react', 'react-dom'],
+  },
   plugins: [
     react(),
     tailwindcss(),

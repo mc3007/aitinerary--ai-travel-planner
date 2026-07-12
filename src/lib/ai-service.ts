@@ -3,7 +3,7 @@ import type { ItineraryResponse } from '../types/itinerary';
 import { AI_CONFIG } from '../constants/config';
 import { supabase } from './supabase';
 
-export type ProviderName = 'fireworks' | 'natively' | 'auto-fallback' | 'mock';
+export type ProviderName = 'gemini' | 'natively' | 'auto-fallback' | 'mock';
 
 export interface AiResult {
   itinerary: ItineraryResponse;
@@ -13,7 +13,7 @@ export interface AiResult {
 
 /**
  * Generate an AI itinerary via the Supabase Edge Function.
- * The Edge Function calls Fireworks AI (primary) with Natively AI fallback.
+ * The Edge Function calls Google Gemini (primary) with Natively AI fallback.
  * API keys are stored in Supabase Secrets Manager — never exposed to the browser.
  */
 export async function generateItinerary(
@@ -45,8 +45,12 @@ export async function generateItinerary(
 
   if (!response.ok) {
     const errorBody = await response.json().catch(() => ({}));
+    const diagnostics = errorBody.diagnostics
+      ? ` (Gemini key present: ${errorBody.diagnostics.gemini_key_present}, Natively key present: ${errorBody.diagnostics.natively_key_present})`
+      : '';
+    const details = errorBody.details ? ` — ${errorBody.details}` : '';
     throw new Error(
-      errorBody.error || `Edge Function error (${response.status})`
+      `${errorBody.error || `Edge Function error (${response.status})`}${details}${diagnostics}`
     );
   }
 

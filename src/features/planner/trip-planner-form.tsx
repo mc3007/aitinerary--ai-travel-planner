@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import {
   Sparkles,
@@ -16,13 +16,16 @@ import { Label } from '../../components/ui/label';
 import { DestinationList } from './components/DestinationList';
 import { TransportSelector } from './components/TransportSelector';
 import { BudgetEstimator } from './components/BudgetEstimator';
-import { INTERESTS, FOOD_PREFERENCES } from '../../types/itinerary';
+import { INTERESTS, FOOD_PREFERENCES, TRANSPORT_MODES } from '../../types/itinerary';
 
 interface PlannerFormProps {
   onGenerate: (data: FormState) => void;
+  onDestinationDetails?: (details: import('./components/DestinationList').DestinationEntry[]) => void;
+  initialDestinations?: string[];
+  prefill?: Partial<FormState>;
 }
 
-export type AiProviderOption = 'auto' | 'fireworks' | 'natively';
+export type AiProviderOption = 'auto' | 'gemini' | 'natively';
 
 export interface FormState {
   destinations: string[];
@@ -48,8 +51,16 @@ export interface FormState {
   aiProvider: AiProviderOption;
 }
 
-export function TripPlannerForm({ onGenerate }: PlannerFormProps) {
-  const [destinations, setDestinations] = useState<string[]>([]);
+const normalizeDate = (value: string | undefined): string | undefined => {
+  if (!value) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(value)) return value;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return undefined;
+  return parsed.toISOString().split('T')[0];
+};
+
+export function TripPlannerForm({ onGenerate, onDestinationDetails, initialDestinations, prefill }: PlannerFormProps) {
+  const [destinations, setDestinations] = useState<string[]>(initialDestinations || []);
   const [budget, setBudget] = useState('');
   const [duration, setDuration] = useState('');
   const [startDate, setStartDate] = useState('');
@@ -63,6 +74,55 @@ export function TripPlannerForm({ onGenerate }: PlannerFormProps) {
   const [visaNeeded, setVisaNeeded] = useState(false);
   const [aiProvider, setAiProvider] = useState<AiProviderOption>('auto');
   const [generating, setGenerating] = useState(false);
+  const [currency, setCurrency] = useState(prefill?.currency || 'USD');
+
+  useEffect(() => {
+    if (!prefill) return;
+    if (prefill.destinations && prefill.destinations.length > 0) {
+      setDestinations(prefill.destinations);
+    }
+    if (typeof prefill.budget === 'number' && prefill.budget >= 0) {
+      setBudget(String(prefill.budget));
+    }
+    if (typeof prefill.duration === 'number' && prefill.duration > 0) {
+      setDuration(String(prefill.duration));
+    }
+    const normalizedDate = normalizeDate(prefill.startDate);
+    if (normalizedDate) setStartDate(normalizedDate);
+    if (typeof prefill.people === 'number' && prefill.people >= 1) {
+      setPeople(String(prefill.people));
+    }
+    if (Array.isArray(prefill.transportPreferences)) {
+      const valid = prefill.transportPreferences.filter((id) =>
+        TRANSPORT_MODES.some((m) => m.id === id)
+      );
+      setTransportPreferences(valid);
+    }
+    if (prefill.budgetAllocation && typeof prefill.budgetAllocation === 'object') {
+      setBudgetAllocation(prefill.budgetAllocation);
+    }
+    if (Array.isArray(prefill.interests)) {
+      setInterests(prefill.interests.filter((i) => INTERESTS.includes(i)));
+    }
+    if (Array.isArray(prefill.foodPreferences)) {
+      setFoodPreferences(prefill.foodPreferences.filter((f) => FOOD_PREFERENCES.includes(f)));
+    }
+    if (typeof prefill.children === 'number' && prefill.children >= 0) {
+      setChildren(String(prefill.children));
+    }
+    if (typeof prefill.pets === 'boolean') {
+      setPets(prefill.pets);
+    }
+    if (typeof prefill.visaNeeded === 'boolean') {
+      setVisaNeeded(prefill.visaNeeded);
+    }
+    if (prefill.aiProvider && ['auto', 'gemini', 'natively'].includes(prefill.aiProvider)) {
+      setAiProvider(prefill.aiProvider);
+    }
+    if (prefill.currency) {
+      setCurrency(prefill.currency);
+    }
+  }, [prefill]);
 
   const toggleInterest = (interest: string) => {
     setInterests((prev) =>
@@ -88,7 +148,7 @@ export function TripPlannerForm({ onGenerate }: PlannerFormProps) {
     onGenerate({
       destinations,
       budget: budget ? Number(budget) : undefined,
-      currency: 'USD',
+      currency,
       duration: Number(duration),
       startDate,
       people: Number(people),
@@ -114,6 +174,7 @@ export function TripPlannerForm({ onGenerate }: PlannerFormProps) {
         <DestinationList
           destinations={destinations}
           onChange={setDestinations}
+          onDestinationDetails={onDestinationDetails}
           errors={
             destinations.length === 0
               ? ['Add at least one destination']
@@ -301,12 +362,12 @@ export function TripPlannerForm({ onGenerate }: PlannerFormProps) {
         <div>
           <Label>AI Provider</Label>
           <p className="text-[10px] text-muted-foreground mb-2">
-            Fireworks AI is the default (fast). Falls back to Natively AI automatically if unavailable.
+            Gemini is the default (fast). Falls back to Natively AI automatically if unavailable.
           </p>
           <div className="mt-2 flex flex-wrap gap-2">
             {[
-              { value: 'auto' as const, label: 'Auto (Recommended)', desc: 'Fireworks → Natively AI fallback' },
-              { value: 'fireworks' as const, label: 'Fireworks AI', desc: 'Llama 3.3 70B on AMD GPUs' },
+              { value: 'auto' as const, label: 'Auto (Recommended)', desc: 'Gemini → Natively AI fallback' },
+              { value: 'gemini' as const, label: 'Google Gemini', desc: 'Gemini 2.0 Flash' },
               { value: 'natively' as const, label: 'Natively AI', desc: 'GPT-4o fallback provider' },
             ].map(({ value, label, desc }) => (
               <button
