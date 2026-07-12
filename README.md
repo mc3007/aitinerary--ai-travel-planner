@@ -63,23 +63,28 @@ Built as a hackathon project to showcase how conversational AI can power the nex
 
 ### Landing Page
 
-![Landing](docs/screenshots/landing.png)
+![Landing](<img width="2660" height="6112" alt="landing page" src="https://github.com/user-attachments/assets/92b6c208-d20b-4b17-94d3-e267171b6687" />
+)
 
 ### Dashboard
 
-![Dashboard](docs/screenshots/dashboard.png)
+![Dashboard](<img width="2660" height="4020" alt="Home page" src="https://github.com/user-attachments/assets/b36825bb-1c32-4a28-a2f7-5433400959a5" />
+)
 
 ### Travel Copilot
 
-![Copilot](docs/screenshots/copilot.png)
+![Copilot](<img width="1340" height="885" alt="Screenshot 2026-07-13 at 2 54 56 AM" src="https://github.com/user-attachments/assets/4195e571-a529-4505-8d3a-ac1e25e08acc" />
+)
 
 ### Interactive Timeline
 
-![Timeline](docs/screenshots/timeline.png)
+![Timeline](<img width="1341" height="885" alt="Screenshot 2026-07-13 at 2 55 23 AM" src="https://github.com/user-attachments/assets/bc496efc-eff5-44c9-8b7c-c6f1c77dd462" />
+)
 
 ### Map View
 
-![Map](docs/screenshots/map.png)
+![Map](<img width="1340" height="886" alt="Screenshot 2026-07-13 at 2 56 15 AM" src="https://github.com/user-attachments/assets/836fbefe-6a4f-469e-aa1f-86fb0d2b0222" />
+)
 
 ---
 
