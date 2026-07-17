@@ -10,7 +10,7 @@ import {
 } from '../../components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 
-const DEMO_VIDEO_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // Replace with your actual demo video URL
+const DEMO_VIDEO_URL = 'https://www.youtube.com/embed/uafbkaW-nGo'; // Replace with your actual demo video URL
 
 function DemoPreviewImage({
   onPlay,
