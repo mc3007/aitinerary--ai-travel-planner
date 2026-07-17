@@ -15,6 +15,7 @@ import { ProfilePage } from './features/profile/profile-page';
 import { SettingsPage } from './features/settings/settings-page';
 import { SavedPlacesPage } from './features/saved-places/saved-places-page';
 import { RecommendationsPage } from './features/recommendations/recommendations-page';
+import { FeedbackForm } from './features/feedback/feedback-form';
 import { useAuth } from './hooks/useAuth';
 
 function ProtectedRoute({ children }: { children: React.ReactNode }) {
@@ -130,6 +131,7 @@ function App() {
                       </ProtectedRoute>
                     }
                   />
+                  <Route path="/feedback" element={<FeedbackForm />} />
                 </Route>
               </Routes>
             </BrowserRouter>

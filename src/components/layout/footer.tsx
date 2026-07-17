@@ -8,6 +8,7 @@ import {
   Bell,
   LifeBuoy,
   User,
+  MessageSquare,
 } from 'lucide-react';
 
 const footerLinks = {
@@ -24,6 +25,7 @@ const footerLinks = {
   Resources: [
     { label: 'Guides', href: '#' },
     { label: 'Support', href: '#' },
+    { label: 'Feedback', href: '/feedback' },
   ],
   Legal: [
     { label: 'Privacy', href: '#' },
@@ -42,6 +44,7 @@ export function Footer() {
     { label: 'My Trips', href: '/dashboard', icon: Briefcase },
     { label: 'Notifications', href: '/notifications', icon: Bell },
     { label: 'Support', href: '#', icon: LifeBuoy },
+    { label: 'Feedback', href: '/feedback', icon: MessageSquare },
   ];
 
   const accountLinks = [

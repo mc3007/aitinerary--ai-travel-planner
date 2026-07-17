@@ -5,7 +5,7 @@ import { useAuth } from '../../hooks/useAuth';
 import { ProfileMenu } from './profile-menu';
 import { ThemeToggle } from './theme-toggle';
 import { NotificationCenter } from '../../features/notifications/notification-center';
-import { Luggage, Plus, Menu, X, Compass, Bot, Sparkles } from 'lucide-react';
+import { Luggage, Plus, Menu, X, Compass, Bot, Sparkles, MessageSquare } from 'lucide-react';
 
 type NavItem = {
   label: string;
@@ -36,6 +36,11 @@ const SIGNED_IN_NAV: NavItem[] = [
     href: '/dashboard',
     icon: Luggage,
     sectionId: 'your-trips',
+  },
+  {
+    label: 'Feedback',
+    href: '/feedback',
+    icon: MessageSquare,
   },
 ];
 

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Sparkles, Play, X } from 'lucide-react';
 import { Button } from '../../components/ui/button';
 import {
@@ -10,9 +10,100 @@ import {
 } from '../../components/ui/dialog';
 import { useNavigate } from 'react-router-dom';
 
+const DEMO_VIDEO_URL = 'https://www.youtube.com/embed/dQw4w9WgXcQ'; // Replace with your actual demo video URL
+
+function DemoPreviewImage({
+  onPlay,
+  className,
+}: {
+  onPlay: () => void;
+  className?: string;
+}) {
+  return (
+    <div className={`relative overflow-hidden rounded-xl bg-black ${className || ''}`}>
+      <img
+        src="/AITinerary.png"
+        alt="AITinerary preview — AI travel planner"
+        className="h-full w-full object-cover"
+      />
+      {/* Gradient overlay at bottom */}
+      <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent" />
+
+      {/* Play button overlay */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          onPlay();
+        }}
+        className="group absolute inset-0 flex cursor-pointer items-center justify-center transition-colors hover:bg-black/10"
+        aria-label="Play demo video"
+      >
+        <motion.div
+          initial={{ scale: 1 }}
+          whileHover={{ scale: 1.1 }}
+          whileTap={{ scale: 0.95 }}
+          className="flex h-16 w-16 items-center justify-center rounded-full bg-white/90 shadow-xl backdrop-blur-sm transition-all duration-200 group-hover:bg-white group-hover:shadow-2xl"
+        >
+          <Play className="ml-0.5 h-7 w-7 fill-primary text-primary" />
+        </motion.div>
+      </button>
+
+      {/* Label */}
+      <div className="absolute bottom-4 left-4 right-4">
+        <p className="text-sm font-medium text-white/90 drop-shadow-sm">
+          Watch Demo — See AITinerary in Action
+        </p>
+      </div>
+    </div>
+  );
+}
+
+function DemoVideoPlayer({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
+      <iframe
+        src={DEMO_VIDEO_URL}
+        title="AITinerary Demo Video"
+        className="h-full w-full"
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        allowFullScreen
+      />
+      <button
+        onClick={onClose}
+        className="absolute right-3 top-3 z-10 rounded-full bg-black/60 p-1.5 text-white backdrop-blur-sm transition-colors hover:bg-black/80 cursor-pointer"
+        aria-label="Close video"
+      >
+        <X className="h-4 w-4" />
+      </button>
+    </div>
+  );
+}
+
 export function Hero() {
   const [demoOpen, setDemoOpen] = useState(false);
+  const [videoPlaying, setVideoPlaying] = useState(false);
+  const [previewPlaying, setPreviewPlaying] = useState(false);
   const navigate = useNavigate();
+
+  const handleOpenDemo = () => {
+    setVideoPlaying(false);
+    setDemoOpen(true);
+  };
+
+  const handlePlayInDialog = () => {
+    setVideoPlaying(true);
+  };
+
+  const handlePlayPreview = () => {
+    setPreviewPlaying(true);
+  };
+
+  const handleCloseDialog = (open: boolean) => {
+    setDemoOpen(open);
+    if (!open) {
+      setVideoPlaying(false);
+    }
+  };
 
   return (
     <section className="relative overflow-hidden px-4 pb-20 pt-24 sm:px-6 sm:pt-32 lg:px-8">
@@ -71,12 +162,12 @@ export function Hero() {
           >
             Start Planning
           </Button>
-          <Dialog open={demoOpen} onOpenChange={setDemoOpen}>
+          <Dialog open={demoOpen} onOpenChange={handleCloseDialog}>
             <Button
               size="xl"
               variant="outline"
               className="w-full gap-2 sm:w-auto"
-              onClick={() => setDemoOpen(true)}
+              onClick={handleOpenDemo}
             >
               <Play className="h-4 w-4" />
               Watch Demo
@@ -86,24 +177,32 @@ export function Hero() {
               <DialogDescription className="sr-only">
                 Watch how AITinerary plans your perfect trip in seconds.
               </DialogDescription>
-              <div className="relative aspect-video w-full overflow-hidden rounded-xl bg-black">
-                <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-primary/10 via-secondary/10 to-background">
-                  <div className="text-center">
-                    <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/20">
-                      <Play className="h-6 w-6 text-primary" />
-                    </div>
-                    <p className="mt-3 text-sm text-muted-foreground">
-                      Demo video placeholder — replace with your actual video
-                    </p>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => setDemoOpen(false)}
-                className="absolute right-4 top-4 z-10 rounded-full bg-background/80 p-1.5 text-foreground backdrop-blur-sm transition-colors hover:bg-background cursor-pointer"
-              >
-                <X className="h-4 w-4" />
-              </button>
+              <AnimatePresence mode="wait">
+                {videoPlaying ? (
+                  <motion.div
+                    key="video"
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    exit={{ opacity: 0 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <DemoVideoPlayer onClose={() => setVideoPlaying(false)} />
+                  </motion.div>
+                ) : (
+                  <motion.div
+                    key="image"
+                    initial={{ opacity: 0, scale: 0.95 }}
+                    animate={{ opacity: 1, scale: 1 }}
+                    exit={{ opacity: 0, scale: 0.95 }}
+                    transition={{ duration: 0.3 }}
+                  >
+                    <DemoPreviewImage
+                      onPlay={handlePlayInDialog}
+                      className="aspect-video"
+                    />
+                  </motion.div>
+                )}
+              </AnimatePresence>
             </DialogContent>
           </Dialog>
         </motion.div>
@@ -115,14 +214,32 @@ export function Hero() {
           className="mt-16"
         >
           <div className="relative mx-auto max-w-4xl rounded-2xl border border-border/50 bg-card/50 p-2 shadow-2xl backdrop-blur-sm">
-            <div className="aspect-video rounded-xl bg-gradient-to-br from-primary/5 via-secondary/5 to-background flex items-center justify-center">
-              <div className="text-center">
-                <div className="mx-auto flex h-16 w-16 items-center justify-center rounded-full bg-primary/10">
-                  <Play className="h-6 w-6 text-primary" />
-                </div>
-                <p className="mt-3 text-sm text-muted-foreground">See AITinerary in action</p>
-              </div>
-            </div>
+            <AnimatePresence mode="wait">
+              {previewPlaying ? (
+                <motion.div
+                  key="preview-video"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <DemoVideoPlayer onClose={() => setPreviewPlaying(false)} />
+                </motion.div>
+              ) : (
+                <motion.div
+                  key="preview-image"
+                  initial={{ opacity: 0, scale: 0.95 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.3 }}
+                >
+                  <DemoPreviewImage
+                    onPlay={handlePlayPreview}
+                    className="aspect-video"
+                  />
+                </motion.div>
+              )}
+            </AnimatePresence>
           </div>
         </motion.div>
       </div>

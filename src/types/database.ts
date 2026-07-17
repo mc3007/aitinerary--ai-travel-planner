@@ -337,6 +337,30 @@ export interface Database {
           summary?: string;
         };
       };
+      feedback: {
+        Row: {
+          id: string;
+          user_id: string | null;
+          name: string;
+          email: string;
+          feedback_type: string;
+          message: string;
+          rating: number;
+          page_url: string;
+          created_at: string;
+        };
+        Insert: {
+          id?: string;
+          user_id?: string | null;
+          name?: string | null;
+          email?: string | null;
+          feedback_type: string;
+          message: string;
+          rating?: number;
+          page_url?: string;
+        };
+        Update: Record<string, never>;
+      };
     };
     Views: Record<string, never>;
     Functions: Record<string, never>;
