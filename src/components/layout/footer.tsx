@@ -55,7 +55,7 @@ export function Footer() {
           <div className="col-span-2 md:col-span-1">
             <Link to="/" className="inline-flex items-center">
               <img
-                src="/logo-full.svg"
+                src="/logo-full.png"
                 alt="AITinerary"
                 className="h-7 w-auto"
               />
